@@ -1,6 +1,6 @@
 """Minimal ContextBridge demo: retrieval -> selection -> evaluation -> memory."""
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from context_store import add_context
 from evaluator import evaluate
@@ -14,21 +14,31 @@ def run_agent(task: str, context: Optional[Dict[str, object]]) -> str:
     return f"Try general debugging steps for: {task}"
 
 
-def run(task: str) -> None:
-    candidates = retrieve(task)
+def print_retrieved(candidates: List[Dict[str, object]]) -> None:
     print("Retrieved:")
     if candidates:
         for item in candidates:
-            print(f"- {item['strategy']} ({item['result']})")
+            print(
+                f"- {item['strategy']} ({item['result']}, relevance={item['retrieval_score']})"
+            )
     else:
         print("- No matching context")
 
-    selected = select(candidates)
+
+def run(task: str) -> None:
+    candidates = retrieve(task)
+    print_retrieved(candidates)
+
+    selected, reasons = select(candidates)
     print("\nSelected:")
     if selected:
         print(f"- {selected['strategy']}")
     else:
         print("- None")
+
+    print("\nWhy selected:")
+    for reason in reasons:
+        print(f"- {reason}")
 
     output = run_agent(task, selected)
     print("\nOutput:")

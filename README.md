@@ -90,7 +90,8 @@ Stores structured historical interactions:
 
 ### 6.2 Retrieval
 
-- Identifies candidate context (keyword or embedding-based)  
+- Identifies candidate context using a lightweight embedding-style similarity score  
+- Can score across task text, prior strategy text, and tags  
 - Optimized for **coverage**, not final selection  
 
 ---
@@ -103,7 +104,7 @@ Selection prioritizes:
 
 - Historical success signals  
 - Task similarity  
-- Recency and relevance  
+- Explainable scoring over relevance and outcome history  
 
 ---
 
@@ -160,17 +161,21 @@ Reliable systems require:
 ## 10. Demo
 
 ```
-User: Fix slow API response
+User: fix slow API timeout
 
 Retrieved:
-- "debug latency via logs" (success)
-- "increase timeout" (failed)
+- "increase timeout" (failure, relevance=0.756)
+- "check logs" (success, relevance=0.378)
 
 Selected:
-- debug latency via logs
+- check logs
 
-Agent Output:
-"Check logs and identify bottlenecks..."
+Why selected:
+- higher success rate from past outcome
+- more relevant to the task (score=1.378)
+
+Output:
+Try this: check logs
 
 Evaluation:
 success
