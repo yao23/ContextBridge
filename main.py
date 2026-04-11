@@ -1,124 +1,51 @@
-"""
-ContextBridge Demo - main.py
+"""Minimal ContextBridge demo: retrieval -> selection -> evaluation -> memory."""
 
-A simple CLI demo showing:
-- Context storage
-- Retrieval
-- Selection
-- Evaluation loop
+from typing import Dict, Optional
 
-Run:
-python main.py
-"""
-
-import json
-from typing import List, Dict
+from context_store import add_context
+from evaluator import evaluate
+from retrieval import retrieve
+from selector import select
 
 
-# -----------------------------
-# Context Store (in-memory for demo)
-# -----------------------------
-context_store: List[Dict] = [
-    {
-        "task": "debug API timeout",
-        "strategy": "check logs and trace latency",
-        "result": "success",
-        "tags": ["backend", "latency"]
-    },
-    {
-        "task": "fix slow API response",
-        "strategy": "increase timeout",
-        "result": "failure",
-        "tags": ["backend"]
-    }
-]
-
-
-# -----------------------------
-# Retrieval
-# -----------------------------
-def retrieve_context(task: str):
-    results = []
-    for item in context_store:
-        if any(word in item["task"] for word in task.split()):
-            results.append(item)
-    return results
-
-
-# -----------------------------
-# Selection (simple scoring)
-# -----------------------------
-def select_context(candidates: List[Dict]):
-    if not candidates:
-        return None
-
-    # prioritize success > recency
-    scored = sorted(
-        candidates,
-        key=lambda x: (x["result"] == "success"),
-        reverse=True
-    )
-    return scored[0]
-
-
-# -----------------------------
-# Mock Agent (LLM placeholder)
-# -----------------------------
-def run_agent(task: str, context: Dict):
+def run_agent(task: str, context: Optional[Dict[str, object]]) -> str:
     if context:
-        return f"Using past strategy: {context['strategy']}"
-    return "No context found, try general debugging."
+        return f"Try this: {context['strategy']}"
+    return f"Try general debugging steps for: {task}"
 
 
-# -----------------------------
-# Evaluation
-# -----------------------------
-def evaluate(output: str):
-    # simple mock: if mentions logs, success
-    if "logs" in output:
-        return "success"
-    return "failure"
+def run(task: str) -> None:
+    candidates = retrieve(task)
+    print("Retrieved:")
+    if candidates:
+        for item in candidates:
+            print(f"- {item['strategy']} ({item['result']})")
+    else:
+        print("- No matching context")
 
-
-# -----------------------------
-# Main flow
-# -----------------------------
-def main():
-    task = input("Enter task: ")
-
-    # Step 1: Retrieve
-    candidates = retrieve_context(task)
-    print("\nRetrieved:")
-    for c in candidates:
-        print(f"- {c['strategy']} ({c['result']})")
-
-    # Step 2: Select
-    selected = select_context(candidates)
+    selected = select(candidates)
     print("\nSelected:")
     if selected:
         print(f"- {selected['strategy']}")
     else:
-        print("None")
+        print("- None")
 
-    # Step 3: Run agent
     output = run_agent(task, selected)
-    print("\nAgent Output:")
+    print("\nOutput:")
     print(output)
 
-    # Step 4: Evaluate
     result = evaluate(output)
     print("\nEvaluation:")
     print(result)
 
-    # Step 5: Update memory
-    context_store.append({
-        "task": task,
-        "strategy": output,
-        "result": result,
-        "tags": []
-    })
-
+    stored_strategy = selected["strategy"] if selected else output
+    add_context(task, stored_strategy, result)
     print("\nMemory updated.")
+
+
+def main() -> None:
+    task = input("Enter task: ").strip() or "fix slow API timeout"
+    run(task)
 
 
 if __name__ == "__main__":
